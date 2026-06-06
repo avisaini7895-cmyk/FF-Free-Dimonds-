@@ -1,0 +1,162 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role { USER ADMIN }
+enum Gender { MALE FEMALE OTHER }
+enum UserStatus { ACTIVE SUSPENDED }
+enum WithdrawalStatus { PENDING APPROVED REJECTED TOPUP_COMPLETE }
+enum TaskStatus { LOCKED READY CLAIMED }
+enum AdProvider { ADMOB MONETAG ADSTERRA CUSTOM_HTML JAVASCRIPT }
+
+model User {
+  id              String        @id @default(cuid())
+  email           String        @unique
+  passwordHash    String?
+  role            Role          @default(USER)
+  status          UserStatus    @default(ACTIVE)
+  profileImage    String?
+  fullName        String
+  freeFireUid     String?
+  mobileNumber    String?
+  dateOfBirth     DateTime?
+  gender          Gender?
+  referralCode    String        @unique
+  referredById    String?
+  referredBy      User?         @relation("UserReferrals", fields: [referredById], references: [id])
+  referredUsers   User[]        @relation("UserReferrals")
+  diamondBalance  Int           @default(0)
+  adsWatched      Int           @default(0)
+  lastLoginAt     DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  withdrawals     Withdrawal[]
+  rewards         Reward[]
+  referralsGiven  Referral[]    @relation("Referrer")
+  referralSignup  Referral[]    @relation("Referred")
+  taskProgress    UserTask[]
+  transactions    Transaction[]
+  activityLogs    ActivityLog[]
+  @@map("users")
+}
+
+model Admin {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  username     String   @unique
+  passwordHash String
+  role         Role     @default(ADMIN)
+  createdAt    DateTime @default(now())
+  @@map("admins")
+}
+
+model Referral {
+  id         String   @id @default(cuid())
+  referrerId String
+  referredId String   @unique
+  reward     Int      @default(5)
+  valid      Boolean  @default(true)
+  reason     String?
+  createdAt  DateTime @default(now())
+  referrer   User     @relation("Referrer", fields: [referrerId], references: [id])
+  referred   User     @relation("Referred", fields: [referredId], references: [id])
+  @@map("referrals")
+}
+
+model Withdrawal {
+  id        String           @id @default(cuid())
+  userId    String
+  amount    Int
+  status    WithdrawalStatus @default(PENDING)
+  notes     String?
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  user      User             @relation(fields: [userId], references: [id])
+  @@map("withdrawals")
+}
+
+model Reward {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String
+  amount    Int
+  source    String
+  metadata  Json?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+  @@map("rewards")
+}
+
+model Task {
+  id          String     @id @default(cuid())
+  title       String
+  requiredAds Int
+  rewardName  String
+  order       Int        @unique
+  users       UserTask[]
+  @@map("tasks")
+}
+
+model UserTask {
+  id        String     @id @default(cuid())
+  userId    String
+  taskId    String
+  progress  Int        @default(0)
+  status    TaskStatus @default(LOCKED)
+  claimedAt DateTime?
+  user      User       @relation(fields: [userId], references: [id])
+  task      Task       @relation(fields: [taskId], references: [id])
+  @@unique([userId, taskId])
+  @@map("user_tasks")
+}
+
+model Ad {
+  id        String     @id @default(cuid())
+  name      String
+  provider  AdProvider
+  code      String
+  reward    Int        @default(1)
+  enabled   Boolean    @default(true)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  @@map("ads")
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  title     String
+  message   String
+  type      String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  @@map("notifications")
+}
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String
+  ip        String?
+  device    String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id])
+  @@map("activity_logs")
+}
+
+model Transaction {
+  id        String   @id @default(cuid())
+  userId    String
+  amount    Int
+  type      String
+  status    String
+  reference String?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+  @@map("transactions")
+}

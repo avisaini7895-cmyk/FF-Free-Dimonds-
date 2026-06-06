@@ -1,0 +1,10 @@
+{
+  "name": "DIMONDTOX Rewards",
+  "short_name": "DIMONDTOX",
+  "description": "Premium gaming rewards dashboard with referrals, tasks and withdrawals.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#05020d",
+  "theme_color": "#7c3aed",
+  "icons": []
+}
